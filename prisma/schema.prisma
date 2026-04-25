@@ -1,0 +1,92 @@
+
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model User {
+  id         Int      @id @default(autoincrement())
+  email      String   @unique
+  password   String
+  name       String?
+  isActive   Boolean  @default(true)
+  isStaff    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  movements  StockMovement[]
+}
+
+model Warehouse {
+  id       Int    @id @default(autoincrement())
+  name     String @unique
+  location String?
+  stocks   Stock[]
+
+  alerts Alert[]
+}
+
+model Category {
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  color    String  @default("#007bff")
+  products Product[]
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  name        String
+  sku         String    @unique
+  barcode     String?   @unique
+  categoryId  Int?      @map("category_id")
+  category    Category? @relation(fields: [categoryId], references: [id])
+  price       Float     @default(0)
+  image       String?   // ruta de la imagen
+  threshold   Int       @default(5)
+  description String?
+  qrCode      String?   @map("qr_code") // ruta del QR generado
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  stocks      Stock[]
+  alerts      Alert[]
+}
+
+model Stock {
+  id         Int      @id @default(autoincrement())
+  productId  Int      @map("product_id")
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouseId Int     @map("warehouse_id")
+  warehouse  Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  quantity   Int      @default(0)
+  movements  StockMovement[]
+
+  @@unique([productId, warehouseId])
+}
+
+model StockMovement {
+  id           Int        @id @default(autoincrement())
+  stockId      Int        @map("stock_id")
+  stock        Stock      @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  quantityChange Int      @map("quantity_change")
+  reason       String     // purchase, sale, adjustment, return, transfer
+  notes        String?
+  date         DateTime   @default(now())
+  createdBy    Int?       @map("created_by")
+  user         User?      @relation(fields: [createdBy], references: [id])
+}
+
+model Alert {
+  id          Int      @id @default(autoincrement())
+  productId   Int      @map("product_id")
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouseId Int      @map("warehouse_id")
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  message     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
