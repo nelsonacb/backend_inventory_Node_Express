@@ -2,3 +2,5 @@
 package-lock.json
 .env
 /generated/prisma
+combined.log
+error.log

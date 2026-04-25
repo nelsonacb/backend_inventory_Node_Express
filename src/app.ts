@@ -1,32 +1,43 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import morgan from 'morgan';
+import helmet from 'helmet';
+import compression from 'compression';
+import { limiter } from './middlewares/rateLimiter';
+import { errorHandler } from './middlewares/errorHandler';
 import authRoutes from './routes/authRoutes';
+import productRoutes from './routes/productRoutes';
+import movementRoutes from './routes/movementRoutes';
 import warehouseRoutes from './routes/warehouseRoutes';
 import categoryRoutes from './routes/categoryRoutes';
-import productRoutes from './routes/productRoutes';
 import stockRoutes from './routes/stockRoutes';
-import movementRoutes from './routes/movementRoutes';
 import alertRoutes from './routes/alertRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
 
-dotenv.config();
-
 const app = express();
-app.use(cors());
-app.use(express.json());
-app.use('/uploads', express.static('uploads')); // para imágenes y QR
 
-// Rutas
+app.use(helmet());
+app.use(cors());
+app.use(morgan('dev'));
+app.use(compression());
+app.use(express.json());
+app.use(limiter);
+app.use('/uploads', express.static('uploads'));
+
+// * Rutas
 app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/movements', movementRoutes);
 app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/products', productRoutes);
 app.use('/api/stocks', stockRoutes);
-app.use('/api/movements', movementRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date() });
 });
+
+app.use(errorHandler);
+
+export default app;
