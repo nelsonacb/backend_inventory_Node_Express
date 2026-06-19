@@ -15,6 +15,12 @@ export const createMovement = async (req: Request, res: Response) => {
 };
 
 export const getMovements = async (req: Request, res: Response) => {
-  const movements = await movementService.getMovements();
-  res.json(movements);
+  try {
+    const page = parseInt(req.query.page as string) || undefined;
+    const limit = parseInt(req.query.limit as string) || undefined;
+    const result = await movementService.getMovements(page, limit);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener movimientos' });
+  }
 };

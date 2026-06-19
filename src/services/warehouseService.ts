@@ -1,7 +1,27 @@
 import { prisma } from '../../lib/prisma';
 import logger from '../utils/logger';
 
-export const getAllWarehouses = async () => {
+export const getAllWarehouses = async (page?: number, limit?: number) => {
+  if (page && limit) {
+    const skip = (page - 1) * limit;
+    const [data, total] = await prisma.$transaction([
+      prisma.warehouse.findMany({
+        skip,
+        take: limit,
+        orderBy: { id: 'asc' },
+      }),
+      prisma.warehouse.count(),
+    ]);
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
   return prisma.warehouse.findMany();
 };
 

@@ -28,7 +28,9 @@ export const exportCSV = async (req: Request, res: Response) => {
       'Notas',
       'Creado por',
     ],
-    ...rows.map((r) => Object.values(r)),
+    ...rows.map((r: { [s: string]: unknown } | ArrayLike<unknown>) =>
+      Object.values(r),
+    ),
   ];
   const csvContent = csvRows.map((row) => row.join(',')).join('\n');
   res.header('Content-Type', 'text/csv');

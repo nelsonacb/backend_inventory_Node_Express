@@ -2,12 +2,24 @@ import { Request, Response } from 'express';
 import * as stockService from '../services/stockService';
 
 export const getAll = async (req: Request, res: Response) => {
-  const { product, warehouse } = req.query;
-  const stocks = await stockService.getAllStocks(
-    product ? Number(product) : undefined,
-    warehouse ? Number(warehouse) : undefined,
-  );
-  res.json(stocks);
+  try {
+    const product = req.query.product ? Number(req.query.product) : undefined;
+    const warehouse = req.query.warehouse
+      ? Number(req.query.warehouse)
+      : undefined;
+    const page = parseInt(req.query.page as string) || undefined;
+    const limit = parseInt(req.query.limit as string) || undefined;
+
+    const result = await stockService.getAllStocks(
+      product,
+      warehouse,
+      page,
+      limit,
+    );
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener stocks' });
+  }
 };
 
 export const createOrUpdate = async (req: Request, res: Response) => {

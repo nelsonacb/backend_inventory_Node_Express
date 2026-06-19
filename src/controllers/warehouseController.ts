@@ -1,39 +1,69 @@
 import { Request, Response } from 'express';
-import { prisma } from '../../lib/prisma';
+import * as warehouseService from '../services/warehouseService';
 
 export const getAll = async (req: Request, res: Response) => {
-  const warehouses = await prisma.warehouse.findMany();
-  res.json(warehouses);
+  try {
+    const page = parseInt(req.query.page as string) || undefined;
+    const limit = parseInt(req.query.limit as string) || undefined;
+    const result = await warehouseService.getAllWarehouses(page, limit);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener almacenes' });
+  }
 };
 
 export const create = async (req: Request, res: Response) => {
-  const { name, location } = req.body;
-  const warehouse = await prisma.warehouse.create({ data: { name, location } });
-  res.status(201).json(warehouse);
+  try {
+    const { name, location } = req.body;
+    const warehouse = await warehouseService.createWarehouse(name, location);
+    res.status(201).json(warehouse);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear almacén' });
+  }
 };
 
 export const getById = async (req: Request, res: Response) => {
   const id = parseInt(req.params.id as string);
   if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
-  const warehouse = await prisma.warehouse.findUnique({ where: { id } });
-  if (!warehouse) return res.status(404).json({ error: 'No encontrado' });
-  res.json(warehouse);
+
+  try {
+    const warehouse = await warehouseService.getWarehouseById(id);
+    res.json(warehouse);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Almacén no encontrado') {
+      return res.status(404).json({ error: 'No encontrado' });
+    }
+    res.status(500).json({ error: 'Error al obtener almacén' });
+  }
 };
 
 export const update = async (req: Request, res: Response) => {
   const id = parseInt(req.params.id as string);
   if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
-  const { name, location } = req.body;
-  const updated = await prisma.warehouse.update({
-    where: { id },
-    data: { name, location },
-  });
-  res.json(updated);
+
+  try {
+    const { name, location } = req.body;
+    const updated = await warehouseService.updateWarehouse(id, name, location);
+    res.json(updated);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Almacén no encontrado') {
+      return res.status(404).json({ error: 'No encontrado' });
+    }
+    res.status(500).json({ error: 'Error al actualizar almacén' });
+  }
 };
 
 export const deleteWarehouse = async (req: Request, res: Response) => {
   const id = parseInt(req.params.id as string);
   if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
-  await prisma.warehouse.delete({ where: { id } });
-  res.status(204).send();
+
+  try {
+    await warehouseService.deleteWarehouse(id);
+    res.status(204).send();
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Almacén no encontrado') {
+      return res.status(404).json({ error: 'No encontrado' });
+    }
+    res.status(500).json({ error: 'Error al eliminar almacén' });
+  }
 };

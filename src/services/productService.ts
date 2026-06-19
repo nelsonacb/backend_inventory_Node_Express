@@ -28,7 +28,12 @@ export const createProduct = async (
   return product;
 };
 
-export const getAllProducts = async (search?: string, categoryId?: number) => {
+export const getAllProducts = async (
+  search?: string,
+  categoryId?: number,
+  page?: number,
+  limit?: number,
+) => {
   const where: any = {};
   if (search) {
     where.OR = [
@@ -38,10 +43,39 @@ export const getAllProducts = async (search?: string, categoryId?: number) => {
     ];
   }
   if (categoryId) where.categoryId = categoryId;
-  const products = await prisma.product.findMany({
-    where,
-    include: { category: true, stocks: { include: { warehouse: true } } },
-  });
+
+  const include = {
+    category: true,
+    stocks: { include: { warehouse: true } },
+  };
+
+  if (page && limit) {
+    const skip = (page - 1) * limit;
+    const [data, total] = await prisma.$transaction([
+      prisma.product.findMany({
+        where,
+        include,
+        skip,
+        take: limit,
+        orderBy: { id: 'asc' },
+      }),
+      prisma.product.count({ where }),
+    ]);
+    const productsWithStock = data.map((p) => ({
+      ...p,
+      total_stock: p.stocks.reduce((sum, s) => sum + s.quantity, 0),
+    }));
+    return {
+      data: productsWithStock,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+  const products = await prisma.product.findMany({ where, include });
   return products.map((p) => ({
     ...p,
     total_stock: p.stocks.reduce((sum, s) => sum + s.quantity, 0),
@@ -54,7 +88,10 @@ export const getProductById = async (id: number) => {
     include: { category: true, stocks: { include: { warehouse: true } } },
   });
   if (!product) throw new Error('Producto no encontrado');
-  const total_stock = product.stocks.reduce((sum, s) => sum + s.quantity, 0);
+  const total_stock = product.stocks.reduce(
+    (sum: any, s: { quantity: any }) => sum + s.quantity,
+    0,
+  );
   return { ...product, total_stock };
 };
 
@@ -90,6 +127,9 @@ export const lookupByBarcode = async (barcode: string) => {
     include: { category: true, stocks: { include: { warehouse: true } } },
   });
   if (!product) throw new Error('Producto no encontrado');
-  const total_stock = product.stocks.reduce((sum, s) => sum + s.quantity, 0);
+  const total_stock = product.stocks.reduce(
+    (sum: any, s: { quantity: any }) => sum + s.quantity,
+    0,
+  );
   return { ...product, total_stock };
 };

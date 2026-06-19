@@ -4,10 +4,35 @@ import logger from '../utils/logger';
 export const getAllStocks = async (
   productId?: number,
   warehouseId?: number,
+  page?: number,
+  limit?: number,
 ) => {
   const where: any = {};
   if (productId) where.productId = productId;
   if (warehouseId) where.warehouseId = warehouseId;
+
+  if (page && limit) {
+    const skip = (page - 1) * limit;
+    const [data, total] = await prisma.$transaction([
+      prisma.stock.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { id: 'asc' },
+        include: { product: true, warehouse: true },
+      }),
+      prisma.stock.count({ where }),
+    ]);
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
   return prisma.stock.findMany({
     where,
     include: { product: true, warehouse: true },

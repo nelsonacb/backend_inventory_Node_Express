@@ -1,8 +1,29 @@
 import { prisma } from '../../lib/prisma';
 import logger from '../utils/logger';
 
-export const getAllCategories = async () => {
-  return prisma.category.findMany();
+export const getAllCategories = async (
+  page: number = 1,
+  limit: number = 10,
+) => {
+  const skip = (page - 1) * limit;
+  const [data, total] = await prisma.$transaction([
+    prisma.category.findMany({
+      skip,
+      take: limit,
+      orderBy: { id: 'asc' },
+    }),
+    prisma.category.count(),
+  ]);
+
+  return {
+    data,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
 
 export const getCategoryById = async (id: number) => {

@@ -7,12 +7,21 @@ export const createProduct = async (req: Request, res: Response) => {
 };
 
 export const getAllProducts = async (req: Request, res: Response) => {
-  const { search, category } = req.query;
-  const products = await productService.getAllProducts(
-    search as string,
-    category ? Number(category) : undefined,
-  );
-  res.json(products);
+  try {
+    const { search, category } = req.query;
+    const page = parseInt(req.query.page as string) || undefined;
+    const limit = parseInt(req.query.limit as string) || undefined;
+
+    const result = await productService.getAllProducts(
+      search as string,
+      category ? Number(category) : undefined,
+      page,
+      limit,
+    );
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener productos' });
+  }
 };
 
 export const getProductById = async (req: Request, res: Response) => {
