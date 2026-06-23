@@ -34,3 +34,36 @@ export const loginUser = async (email: string, password: string) => {
   });
   return { access: accessToken, refresh: refreshToken };
 };
+
+export const getUserById = async (userId: number) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      isActive: true,
+      isStaff: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+  if (!user) throw new Error('Usuario no encontrado');
+  return user;
+};
+
+export const refreshAccessToken = async (refreshToken: string) => {
+  try {
+    const decoded = jwt.verify(refreshToken, env.JWT_SECRET) as { id: number };
+    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+    if (!user) throw new Error('Usuario no encontrado');
+    const newAccess = jwt.sign(
+      { id: user.id, email: user.email, isStaff: user.isStaff },
+      env.JWT_SECRET,
+      { expiresIn: '1d' },
+    );
+    return { access: newAccess };
+  } catch (error) {
+    throw new Error('Refresh token inválido o expirado');
+  }
+};
