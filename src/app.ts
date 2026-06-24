@@ -17,7 +17,7 @@ import dashboardRoutes from './routes/dashboardRoutes';
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 app.use(morgan('dev'));
 app.use(compression());
 app.use(express.json());
@@ -34,8 +34,9 @@ app.use('/api/stocks', stockRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date() });
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
 });
 
 app.use(errorHandler);

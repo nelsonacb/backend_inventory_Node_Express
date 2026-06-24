@@ -6,8 +6,34 @@ export const createProduct = async (
   data: any,
   imageFile?: Express.Multer.File,
 ) => {
-  const { name, sku, barcode, categoryId, price, threshold, description } =
-    data;
+  const {
+    name,
+    sku,
+    barcode,
+    categoryId,
+    price,
+    threshold,
+    description,
+    initialStock,
+    warehouseId,
+  } = data;
+
+  const category = await prisma.category.findUnique({
+    where: { id: categoryId },
+  });
+  if (!category) {
+    throw new Error(`La categoría con ID ${categoryId} no existe`);
+  }
+
+  if (warehouseId) {
+    const warehouse = await prisma.warehouse.findUnique({
+      where: { id: warehouseId },
+    });
+    if (!warehouse) {
+      throw new Error(`El almacén con ID ${warehouseId} no existe`);
+    }
+  }
+
   const image = imageFile ? `/uploads/products/${imageFile.filename}` : null;
   const qrCode = await generateQRCode(sku);
 
@@ -24,6 +50,17 @@ export const createProduct = async (
       qrCode,
     },
   });
+
+  if (initialStock && warehouseId) {
+    await prisma.stock.create({
+      data: {
+        productId: product.id,
+        warehouseId,
+        quantity: initialStock,
+      },
+    });
+  }
+
   logger.info(`Producto creado: ${sku}`);
   return product;
 };
