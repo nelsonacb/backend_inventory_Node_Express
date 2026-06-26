@@ -76,3 +76,67 @@ export const exportCSV = async () => {
   }));
   return rows;
 };
+
+export const getStockByCategory = async () => {
+  const stocks = await prisma.stock.findMany({
+    include: {
+      product: {
+        include: {
+          category: true,
+        },
+      },
+    },
+  });
+
+  const categoryMap = new Map<string, number>();
+  for (const s of stocks) {
+    const catName = s.product.category?.name || 'Sin categoría';
+    const value = s.quantity * s.product.price;
+    categoryMap.set(catName, (categoryMap.get(catName) || 0) + value);
+  }
+
+  const result = Array.from(categoryMap.entries()).map(([category, value]) => ({
+    category,
+    value: parseFloat(value.toFixed(2)),
+  }));
+
+  return result;
+};
+
+export const getLowStock = async (limit = 5) => {
+  const stocks = await prisma.stock.findMany({
+    include: {
+      product: true,
+    },
+  });
+
+  const productStockMap = new Map<
+    number,
+    { totalStock: number; threshold: number; name: string }
+  >();
+  for (const s of stocks) {
+    const existing = productStockMap.get(s.productId);
+    if (existing) {
+      existing.totalStock += s.quantity;
+    } else {
+      productStockMap.set(s.productId, {
+        totalStock: s.quantity,
+        threshold: s.product.threshold,
+        name: s.product.name,
+      });
+    }
+  }
+
+  const lowStockItems = Array.from(productStockMap.entries())
+    .filter(([_, data]) => data.totalStock < data.threshold)
+    .map(([productId, data]) => ({
+      productId,
+      name: data.name,
+      stock: data.totalStock,
+      threshold: data.threshold,
+    }))
+    .sort((a, b) => a.stock - b.stock)
+    .slice(0, limit);
+
+  return lowStockItems;
+};

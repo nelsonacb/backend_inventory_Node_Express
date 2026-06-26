@@ -37,3 +37,28 @@ export const exportCSV = async (req: Request, res: Response) => {
   res.attachment('movimientos_stock.csv');
   res.send(csvContent);
 };
+
+export const getStockByCategory = async (req: Request, res: Response) => {
+  try {
+    const data = await dashboardService.getStockByCategory();
+    res.json(data);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ error: 'Error al obtener distribución por categoría' });
+  }
+};
+
+export const getLowStock = async (req: Request, res: Response) => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+    const data = await dashboardService.getLowStock(limit);
+    res.json(data);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ error: 'Error al obtener productos con bajo stock' });
+  }
+};
